@@ -12,6 +12,8 @@ Filter VCFs &amp; calculate pop gen-relevant stuff from VCFs using HTSlib
 
 ## Programs
 
+All programs will show options if run with `-h` or with no arguments.
+
 ### dstat
 * Calculate [D-statistics](https://avianhybrids.wordpress.com/2019/11/09/d-statistics-for-dummies-a-simple-test-for-introgression/) for a set of individuals. Requires a VCF of variant data plus a tab-separated text file mapping individuals (column 1) to populations (column 2).
 * For more information on D-statistics, $\hat{f}$, and the weighted block jackknife, see the section in [this paper](https://pubmed.ncbi.nlm.nih.gov/26826668/).
