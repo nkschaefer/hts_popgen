@@ -40,6 +40,7 @@ All programs will show options if run with `-h` or with no arguments.
 * Computes [Wright's fixation index](https://en.wikipedia.org/wiki/Fixation_index) between populations using a VCF. Follows the [Hudson *et al* (1992)](https://pubmed.ncbi.nlm.nih.gov/1427045/) formulation after recommendations made by [Bhatia *et al* (2013)](https://doi.org/10.1101/gr.154831.113).
 * Requires a VCF of genotype data and a tab-separated text file mapping individuals in the VCF to populations.
 * If given a window size, computes significance using the weighted block jackknife, which is described in the D-statistic section in [this paper](https://pubmed.ncbi.nlm.nih.gov/26826668/).
+* This program also has the option to compute $F_{ST}$ per site. Note that these per-SNP values can be very noisy and some can also be negative.
 
 ### vcf_filter
 * Filters VCF files using some common strategies (variant quality, genotype quality, probability of Hardy-Weinberg equilibrium given population identifiers), but also does per-sample depth filtering. Outputs a filtered VCF and a file of QC-relevant information.
