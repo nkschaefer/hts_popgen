@@ -10,13 +10,13 @@ DEPS = -lz -lhts
 all: dstat fst vcf_filter
 
 dstat: src/dstat.cpp
-	$(COMP) src/dstat.cpp -o dstat $(DEPS)
+	$(COMP) -O3 src/dstat.cpp -o dstat $(DEPS)
 
 fst: src/fst.cpp
-	$(COMP) src/fst.cpp -o fst $(DEPS)
+	$(COMP) -O3 src/fst.cpp -o fst $(DEPS)
 
 vcf_filter: src/vcf_filter.cpp
-	$(COMP) src/vcf_filter.cpp -o vcf_filter $(DEPS)
+	$(COMP) -O3 src/vcf_filter.cpp -o vcf_filter $(DEPS)
 
 clean:
 	rm dstat

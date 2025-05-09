@@ -44,10 +44,9 @@ void help(int code){
     fprintf(stderr, "D stats will be positive when T individuals are closer to 2, or negative\n");
     fprintf(stderr, "when T individuals are closer to 1.\n");
     fprintf(stderr, "\n");
-    fprintf(stderr, "You can omit either U or T, as long as the included population (U or T) has\n");
+    fprintf(stderr, "You can omit either 1 or 2, as long as the included population (1 or 2) has\n");
     fprintf(stderr, "more than one individual. In this case, each individual from the included\n");
-    fprintf(stderr, "population will be tested as the admixed individual, with other individuals\n");
-    fprintf(stderr, "serving as candidate un-admixed.\n");
+    fprintf(stderr, "population will be tested as a representative of the other population.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "===== OPTIONS =====\n");
     fprintf(stderr, "--vcf -v VCF/BCF file. REQUIRED.\n");
@@ -55,9 +54,9 @@ void help(int code){
     fprintf(stderr, "--window -w Window size for weighted block jackknife in Mb (default = 10)\n");
     fprintf(stderr, "  Set to 0 to disable calculating standard errors.\n");
     fprintf(stderr, "--f -f Also estimate admixture proportions using the f-hat statistic. This\n");
-    fprintf(stderr, "  is computed, for each test individual, as D(U,T,A,O)/D(U,A1,A2,O) where A1\n");
-    fprintf(stderr, "  and A2 are two individuals from the admixing (A) population. Requires at least\n");
-    fprintf(stderr, "  two A individuals.\n");
+    fprintf(stderr, "  is computed, for each test individual, as D(1,2,T,O)/D(1,T1,T2,O) where T1\n");
+    fprintf(stderr, "  and T2 are two individuals from the test (T) population. Requires at least\n");
+    fprintf(stderr, "  two T individuals.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--help -h Display this message and exit.\n");
     exit(code);
