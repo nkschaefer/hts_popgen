@@ -28,10 +28,14 @@ struct codon_pos{
     string txid;
     short frame;
     bool rev;
-    codon_pos(const string& t, short f, bool r){
+    int codon_idx;
+    int txlen;
+    codon_pos(const string& t, short f, bool r, int i, int l){
         txid = t;
         frame = f;
         rev = r;
+        codon_idx = i;
+        txlen = l;
     };
 };
 
@@ -67,8 +71,7 @@ void read_vcf(htsFile* bcf_reader,
     int prevrid = -1;
     string curchrom = "";
 
-    char framebuf[2];
-    framebuf[1] = '\0';
+    char framebuf[96];
     string framestr;
 
     while(bcf_read(bcf_reader, bcf_header, bcf_record) == 0){
@@ -108,7 +111,7 @@ void read_vcf(htsFile* bcf_reader,
                         else{
                             infostr_elt += "|";
                         }
-                        sprintf(&framebuf[0], "%d", it->second.frame);
+                        sprintf(&framebuf[0], "%d|%d|%d", it->second.txlen, it->second.codon_idx, it->second.frame);
                         framestr = framebuf;
                         infostr_elt += framestr;
                         if (!first){
@@ -172,6 +175,7 @@ void parse_gff(string& gff_file,
     string phase;
     string attrs;
     
+    map<string, int> tx_cds_len; 
     map<string, string> tx2chrom;
     map<string, bool> txrev;
     map<string, vector<pair<int, int> > > tx2cds;
@@ -237,6 +241,7 @@ void parse_gff(string& gff_file,
             if (tx2cds.count(txid) == 0){
                 vector<pair<int, int> > v;
                 tx2cds.insert(make_pair(txid, v));
+                tx_cds_len.insert(make_pair(txid, 0));
             }
             // Convert to BED-like coords (start is 0-based, end is 0-based+1)
             start -= 1;
@@ -247,6 +252,7 @@ void parse_gff(string& gff_file,
             }
             //start += phase_int;
             tx2cds[txid].push_back(make_pair(start, end));
+            tx_cds_len[txid] += (end-start);
         }
         else if (type == "transcript"){
             parse_attrs(attrs, attrs_parsed);
@@ -305,7 +311,8 @@ void parse_gff(string& gff_file,
                 for (int pos_genome = x->second[i].second-1;
                     pos_genome >= x->second[i].first; --pos_genome){
                     short frame = pos_cds % 3;
-                    dat[chrom].insert(make_pair(pos_genome, codon_pos(x->first, frame, true)));
+                    dat[chrom].insert(make_pair(pos_genome, codon_pos(x->first, frame, true, pos_cds, 
+                        tx_cds_len[x->first]/3)));
                     pos_cds++;            
                 }
             }
@@ -316,7 +323,8 @@ void parse_gff(string& gff_file,
                 ++v){
                 for (int pos_genome = v->first; pos_genome < v->second; ++pos_genome){
                     short frame = pos_cds % 3;
-                    dat[chrom].insert(make_pair(pos_genome, codon_pos(x->first, frame, false)));
+                    dat[chrom].insert(make_pair(pos_genome, codon_pos(x->first, frame, false, pos_cds,
+                        tx_cds_len[x->first]/3)));
                     pos_cds++;
                 }
             }

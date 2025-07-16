@@ -44,6 +44,8 @@ void help(int code){
     fprintf(stderr, "===== OPTIONS =====\n");
     fprintf(stderr, "--vcf -v VCF/BCF file. REQUIRED.\n");
     fprintf(stderr, "--pops -p Population file (described above). REQUIRED.\n");
+    fprintf(stderr, "--hybrid -H Treat one or more populations as F1 hybrids: variants heterozygous\n");
+    fprintf(stderr, "    in all individuals will be treated as fixed. Can specify more than once.\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "--help -h Display this message and exit.\n");
     exit(code);
@@ -108,6 +110,8 @@ void print_gene_aux(const string& txid,
     const string& gene,
     const string& pop1,
     const string& pop2,
+    int Ntot,
+    int Stot,
     int dn,
     int ds,
     int pn,
@@ -119,10 +123,12 @@ void print_gene_aux(const string& txid,
     FILE* outf){
     
     // Eyre-Walker alpha
+    // No need to normalize by site counts (built in)
     double alpha = 1.0 - ((double)ds*(double)pn) / 
         ((double)dn*(double)ps);
     
     // Neutrality index
+    // No need to normalize by site counts (built in)
     double ni = ((double)pn / (double)ps) / 
         ((double)dn/(double)ds);
     
@@ -144,6 +150,7 @@ void print_gene_aux(const string& txid,
     fprintf(outf, "%s\t%s\t%s\t%s", txid.c_str(),
         gene.c_str(), pop1.c_str(), 
         pop2.c_str());
+    fprintf(outf, "\t%d\t%d", Ntot, Stot);
     fprintf(outf, "\t%d\t%d\t%d\t%d",
         dn, ds, pn, ps);
     if (dn > 0 && ds > 0 && ps > 0){
@@ -171,13 +178,14 @@ void print_gene_aux(const string& txid,
 }
 
 void print_genes(map<string, string>& tx2gene,
+    map<string, pair<int, int> >& txtots,
     vector<string>& popnames,
     map<string, map<int, pair<int, int> > >& tx_pop_poly,
     map<string, map<pair<int, int>, pair<int, int> > >& tx_2pop_poly,
     map<string, map<pair<int, int>, pair<int, int> > >& tx_pop_fixed,
     FILE* out_countsf){
     
-    fprintf(out_countsf, "transcript\tgene\tpop1\tpop2\tdN\tdS\tpN\tpS\tNI\tlogp\tDoS\talpha\tpop1pN\tpop1pS\tpop2pN\tpop2pS\n");
+    fprintf(out_countsf, "transcript\tgene\tpop1\tpop2\tNtot\tStot\tdN\tdS\tpN\tpS\tNI\tlogp\tDoS\talpha\tpop1pN\tpop1pS\tpop2pN\tpop2pS\n");
     
     for (map<string, string>::iterator tg = tx2gene.begin(); tg != tx2gene.end(); ++tg){
         if (tx_pop_fixed.count(tg->first) > 0 || tx_pop_poly.count(tg->first) > 0){
@@ -201,6 +209,8 @@ void print_genes(map<string, string>& tx2gene,
                         tg->second,
                         popnames[i],
                         popnames[j],
+                        txtots[tg->first].first,
+                        txtots[tg->first].second,
                         fixed_12,
                         fixed_3,
                         poly_12,
@@ -225,7 +235,9 @@ void read_vcf(htsFile* bcf_reader,
     bcf1_t* bcf_record, 
     int num_samples,
     map<string, vector<int> >& pop_idx,
+    set<string>& hyb_pops,
     map<string, string>& tx2gene,
+    map<string, pair<int, int> >& txtots,
     map<string, map<int, pair<int, int> > >& tx_pop_poly,
     map<string, map<pair<int, int>, pair<int, int> > >& tx_2pop_poly,
     map<string, map<pair<int, int>, pair<int, int> > >& tx_pop_fixed){
@@ -306,6 +318,18 @@ void read_vcf(htsFile* bcf_reader,
                                     tx2gene.insert(make_pair(txids[txids.size()-1], ""));
                                 }
                             }
+                            else if (eltidx == 2){
+                                // Transcript length (in codons)
+                                if (txtots.count(txids[txids.size()-1]) == 0){
+                                    int tlen = atoi(&chunkbuf[0]);
+                                    int num_nonsyn = tlen*2;
+                                    int num_syn = tlen;
+                                    txtots.insert(make_pair(txids[txids.size()-1], make_pair(num_nonsyn, num_syn)));
+                                }
+                            }
+                            else if (eltidx == 3){
+                                // Codon index
+                            }
                             cbidx = 0;
                             eltidx++;
                         }
@@ -318,6 +342,20 @@ void read_vcf(htsFile* bcf_reader,
                     chunkbuf[cbidx] = '\0';
                     int cp = atoi(&chunkbuf[0]);
                     cps.push_back(cp);
+                    
+                    /* 
+                    for (int i = 0; i < txids.size(); ++i){
+                        if (txtots.count(txids[i]) == 0){
+                            txtots.insert(make_pair(txids[i], make_pair(0,0)));
+                        }
+                        if (cps[i] == 2){
+                            txtots[txids[i]].second++;
+                        }
+                        else{
+                            txtots[txids[i]].first++;
+                        }
+                    }
+                    */
 
                     for (int i = 0; i < txids.size(); ++i){
                     
@@ -346,14 +384,19 @@ void read_vcf(htsFile* bcf_reader,
                             p != pop_idx.end(); ++p){
                             int pop_ref = 0;
                             int pop_alt = 0;
+                            int nhet = 0;
+                            int n_nonmiss = 0;
                             for (vector<int>::iterator i = p->second.begin(); i != p->second.end();
                                 ++i){
                                 int32_t* ptr = gts + (*i)*ploidy;
+                                int indv_gt = 0;
                                 if (!bcf_gt_is_missing(ptr[0])){
+                                    n_nonmiss++;
                                     for (int pi = 0; pi < ploidy; ++pi){
                                         if (bcf_gt_allele(ptr[pi]) != 0){
                                             pop_alt++;
                                             altcount++;
+                                            indv_gt++;
                                         }
                                         else{
                                             pop_ref++;
@@ -361,12 +404,21 @@ void read_vcf(htsFile* bcf_reader,
                                         }
                                     }
                                 }
+                                if (indv_gt == 1){
+                                    nhet++;
+                                }
                             }
                             if (pop_ref + pop_alt == 0){
                                 pop_poly.push_back(false);
                                 pop_fixed_allele.push_back(-1);
                             }
                             else if (pop_ref > 0 && pop_alt > 0){
+                                if (nhet == n_nonmiss && hyb_pops.find(p->first) != hyb_pops.end()){
+                                    // Allele is heterozygous in all individuals, and the population
+                                    // is listed as an F1 hybrid.
+                                    pop_poly.push_back(false);
+                                    pop_fixed_allele.push_back(-2);
+                                }
                                 pop_poly.push_back(true);
                                 pop_fixed_allele.push_back(-1);
                             }
@@ -422,9 +474,15 @@ void read_vcf(htsFile* bcf_reader,
                                                 tx_2pop_poly[genomekey][key].first++;
                                             }
                                         }
-                                        else if (!pop_poly[k] && pop_fixed_allele[k] != -1 &&
+                                        else if (!pop_poly[k] && 
+                                            pop_fixed_allele[k] >= 0 &&
                                             pop_fixed_allele[k] != pop_fixed_allele[j]){
                                             // Fixed difference.
+                                            //
+                                            // NOTE: -2 is used to denote "F1 hybrid, and all indvs heterozygous"
+                                            // that will be assumed to match any other pop fixed for an allele
+                                            // (since only consider biallelic sites)
+                                            
                                             pair<int, int> key = make_pair(j, k);
                                             if (tx_pop_fixed[txids[i]].count(key) == 0){
                                                 tx_pop_fixed[txids[i]].insert(make_pair(
@@ -442,7 +500,7 @@ void read_vcf(htsFile* bcf_reader,
                                     }
                                 }
                             }
-                        }                    
+                        }
                     }
                 }
             }
@@ -465,12 +523,14 @@ int main(int argc, char *argv[]) {
     static struct option long_options[] = {
        {"vcf", required_argument, 0, 'v'},
        {"pops", required_argument, 0, 'p'},
+       {"hybrid", required_argument, 0, 'H'},
        {0, 0, 0, 0} 
     };
     
     // Set default values
     string vcf_file = "";
     string popsfile = "";
+    set<string> hyb_pops;
 
     int option_index = 0;
     int ch;
@@ -478,7 +538,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1){
         help(0);
     }
-    while((ch = getopt_long(argc, argv, "v:p:h", long_options, &option_index )) != -1){
+    while((ch = getopt_long(argc, argv, "v:p:H:h", long_options, &option_index )) != -1){
         switch(ch){
             case 0:
                 // This option set a flag. No need to do anything here.
@@ -491,6 +551,9 @@ int main(int argc, char *argv[]) {
                 break;
             case 'p':
                 popsfile = optarg;
+                break;
+            case 'H':
+                hyb_pops.insert(optarg);
                 break;
             default:
                 help(0);
@@ -514,6 +577,16 @@ int main(int argc, char *argv[]) {
     map<string, vector<string> > pops;
     if (popsfile != ""){
         read_pops(popsfile, pops);
+        for (set<string>::iterator hyb = hyb_pops.begin(); hyb != hyb_pops.end(); ++hyb){
+            if (pops.count(*hyb) == 0){
+                fprintf(stderr, "ERROR: specified hybrid pop %s was not found in pops file.\n", hyb->c_str());
+                exit(1);
+            }
+        }
+    }
+    else if (hyb_pops.size() > 0){
+        fprintf(stderr, "ERROR: hybrid pops given, but no population mapping file provided.\n");
+        exit(1);
     }
 
     // Init BCF/VCF reader and take in header
@@ -550,13 +623,14 @@ int main(int argc, char *argv[]) {
         }
     } 
     
+    map<string, pair<int, int> > txtot;
     map<string, map<int, pair<int, int> > > tx_pop_poly;
     map<string, map<pair<int, int>, pair<int, int> > > tx_2pop_poly;
     map<string, map<pair<int, int>, pair<int, int> > > tx_pop_fixed;
     
     // Ready to go
     read_vcf(bcf_reader, bcf_header, bcf_record, num_samples, pop_idx,
-        tx2gene, tx_pop_poly, tx_2pop_poly, tx_pop_fixed);
+        hyb_pops, tx2gene, txtot, tx_pop_poly, tx_2pop_poly, tx_pop_fixed);
     
     vector<string> pop_names;
     map<string, int> pop_name2idx;
@@ -568,6 +642,6 @@ int main(int argc, char *argv[]) {
     }
 
     // Print data
-    print_genes(tx2gene, pop_names, tx_pop_poly, tx_2pop_poly, tx_pop_fixed, stdout);   
+    print_genes(tx2gene, txtot, pop_names, tx_pop_poly, tx_2pop_poly, tx_pop_fixed, stdout);   
 
 }

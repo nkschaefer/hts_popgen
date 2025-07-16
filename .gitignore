@@ -1,5 +1,8 @@
 ann_codon_pos
+data2ancestryhmm
 dstat
 fst
 mk
+vcf2eigenstrat
+vcf2treemix
 vcf_filter
