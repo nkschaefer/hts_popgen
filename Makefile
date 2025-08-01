@@ -7,7 +7,7 @@ CIFLAGS = -I$(PREFIX)/include -Iinclude
 LFLAGS = -L$(PREFIX)/lib -Llib
 DEPS = -lz -lhts
 
-all: ann_codon_pos data2ancestryhmm dstat fst mk vcf2eigenstrat vcf2treemix vcf_filter
+all: ann_codon_pos data2ancestryhmm dstat fst mk sfs vcf2eigenstrat vcf2treemix vcf_filter
 
 ann_codon_pos: src/ann_codon_pos.cpp
 	$(COMP) src/ann_codon_pos.cpp -o ann_codon_pos $(DEPS)
@@ -24,6 +24,9 @@ fst: src/fst.cpp
 mk: src/mk.cpp
 	$(COMP) src/mk.cpp -o mk $(DEPS)
 
+sfs: src/sfs.cpp
+	$(COMP) src/sfs.cpp -o sfs $(DEPS)
+
 vcf2eigenstrat: src/vcf2eigenstrat.cpp
 	$(COMP) -O3 src/vcf2eigenstrat.cpp -o vcf2eigenstrat $(DEPS)
 
@@ -39,6 +42,7 @@ clean:
 	rm dstat
 	rm fst
 	rm mk
+	rm sfs
 	rm vcf2eigenstrat
 	rm vcf2treemix
 	rm vcf_filter
