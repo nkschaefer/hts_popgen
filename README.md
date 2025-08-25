@@ -16,6 +16,16 @@ These programs are meant to be fast and to require minimal effort from users to 
 
 All programs will show options if run with `-h` or with no arguments.
 
+* [`ann_codon_pos`](#ann_codon_pos)
+* [`data2ancestryhmm`](#data2ancestryhmm)
+* [`dstat`](#dstat)
+* [`fst`](#fst)
+* [`mk`](#mk)
+* [`sfs`](#sfs)
+* [`vcf2eigenstrat`](#vcf2eigenstrat)
+* [`vcf2treemix`](#vcf2treemix)
+* [`vcf_filter`](#vcf_filter)
+  
 ### ann_codon_pos
 Adds codon position information to variants in a [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf) file, where applicable. It requires a VCF file and an annotation (GFF3/GFF format). Wherever a variant affects the coding sequence of one or more transcripts, it adds a tag called "CP" (for codon position). The field is a comma-separated text string, where commas separate information for individual transcripts. For each transcript, information is pipe (|) separated, with the following fields:
 1. Transcript ID
