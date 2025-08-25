@@ -24,6 +24,19 @@ Adds codon position information to variants in a [VCF](https://samtools.github.i
 
 Output is a new VCF with CP tags added, which can then be summarized using the `mk` program, if desired.
 
+### data2ancestryhmm
+Prepares input data for [AncestryHMM](https://github.com/russcd/Ancestry_HMM), a tool that maps locus-specific ancestry across the genomes of hybrid individuals, also inferring the time of admixture. The tool is described [Corbett-Detig and Nielsen (2017)](https://pmc.ncbi.nlm.nih.gov/articles/PMC5242547/).
+
+It can theoretically take BAM files as input, but this method is difficult, untested, and prone to outputting way too many variant sites. This is meant for cases where input data are scarce, but more testing is needed for this option to work.
+
+With [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf) file input, you can provide one file listing the names of all candidate admixed individuals (one per line), and another mapping individuals in the VCF to candidate "admixer" populations. This file should be tab-separated.
+
+The output will include a file with extension `.ahmm`, which is the main input file to `Ancestry_HMM`. In this file, candidate admixer populations will be listed in alphabetical order. In other words, if you have provided an admixer population file listing the populations `CEU`, `JPT`, and `YRI`, then population 0 in the `.ahmm` file is `CEU`, population 1 is `JPT`, and population 2 is `YRI`, regardless of the order in which you listed these populations in the input file.
+
+The output will also include a file with extension `.sample`, which just lists the candidate admixed populations and their ploidy (always assumed by this program to be 2. You can edit these files manually to alter ploidy.
+
+To run `Ancestry_HMM`, you will need to specify parameters specific to your use case, but the `.ahmm` file will be the `-i` argument, the `.sample` file will be the `-s` argument, and I include the `--output_ancestry` flag. Results will be stored in `[name].posterior`, where `[name]` is an individual name from the `.sample` file. 
+
 ### dstat
 * Calculate [D-statistics](https://avianhybrids.wordpress.com/2019/11/09/d-statistics-for-dummies-a-simple-test-for-introgression/) for a set of individuals. Requires a [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf) of variant data plus a tab-separated text file mapping individuals (column 1) to populations (column 2).
 * For more information on D-statistics, $\hat{f}$, and the weighted block jackknife, see the section in [this paper](https://pubmed.ncbi.nlm.nih.gov/26826668/).
@@ -56,7 +69,9 @@ Output is a new VCF with CP tags added, which can then be summarized using the `
 Given a [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf) file annotated with codon position information (by `ann_codon_pos`) and a file mapping individuals to populations, tabulates statistics relevant to the [McDonald-Kreitman test](https://en.wikipedia.org/wiki/McDonald%25E2%2580%2593Kreitman_test) for each transcript. 
 * The optional `--hybrid/-H` flag can be used if one or more populations is an F1 hybrid population. This will treat variants that are heterozygous in all individuals as fixed. This is pretty niche and irrelevant to most use cases.
 * All statistics output approximate nonsynonymous mutations as those in codon positions 1 & 2 and synonymous as those in codon position 3. This may change in the future.
+  
 Output is a text-format table with the following fields:
+
 * `transcript`: transcript ID
 * `gene`: gene ID
 * `pop1`: population 1 label
@@ -96,10 +111,10 @@ Each statistic measures the population genetic parameter $\theta$ in two differe
 * `D_dmin`: Tajima's D normalized by dividing by its minimum possible value, as proposed in [Schaeffer (2002)](https://www.cambridge.org/core/journals/genetics-research/article/molecular-population-genetics-of-sequence-length-diversity-in-the-adh-region-of-drosophila-pseudoobscura/C26FE8697447AC9ECBB2EC7FD08D683B)
 * `Dprime`: Tajima's D normalized by dividing by its minimum possible value (equivalent to `D_dmin`) when negative, or its maximum possible value when positive
 * `theta_h`: Estimator of $\theta$ that weights derived allele frequency; reflects high-frequency polymorphisms and proposed in [Fay and Wu (2000)](https://pmc.ncbi.nlm.nih.gov/articles/instance/1461156/pdf/10880498.pdf)
-* `H`: (Fay and Wu's H)[https://pmc.ncbi.nlm.nih.gov/articles/instance/1461156/pdf/10880498.pdf], which compares `theta_h` - `theta_pi` (high-to-mid-frequency polymorphisms) and can be positive in cases of positive selection
+* `H`: [Fay and Wu's H](https://pmc.ncbi.nlm.nih.gov/articles/instance/1461156/pdf/10880498.pdf), which compares `theta_h` - `theta_pi` (high-to-mid-frequency polymorphisms) and can be positive in cases of positive selection
 * `H_hmin`: Fay and Wu's H normalized by dividing by its minimum possible value, similar to `D_dmin`
 * `Hprime`: Fay and Wu's H normalized by dividing by its minimum (when negative) or maximum (when positive) possible value
-* `E` (Zeng _et al_'s E)[https://pmc.ncbi.nlm.nih.gov/articles/PMC1667063/], which compares `theta_h` - `theta_w` (high-to-low-frequency polymorphisms) and can be positive in cases of positive selection
+* `E` [Zeng _et al_'s E](https://pmc.ncbi.nlm.nih.gov/articles/PMC1667063/), which compares `theta_h` - `theta_w` (high-to-low-frequency polymorphisms) and can be positive in cases of positive selection
 * `E_emin`: Zeng _et al_'s E normalized by its minimum possible value, like `D_dmin`
 * `Eprime`: Zeng _et al_'s E normalized by its minimum (when negative) or maximum (when positive) possible value
 
