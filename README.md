@@ -1,6 +1,8 @@
 # hts_popgen
 Filter VCFs &amp; calculate pop gen-relevant stuff from VCFs using HTSlib
 
+These programs are meant to be fast and to require minimal effort from users to convert/create input files.
+
 ## Requirements
 * [htslib](https://github.com/samtools/htslib)
 * gcc
