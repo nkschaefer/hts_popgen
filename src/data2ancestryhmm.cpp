@@ -40,6 +40,10 @@ void help(int code){
     fprintf(stderr, "===== OPTIONS =====\n");
     fprintf(stderr, "--out -o Output file prefix. Will create [out].ahmm and [out].sample.\n");
     fprintf(stderr, "----- Using BAM files as input -----\n");
+    fprintf(stderr, "----- DO NOT USE THIS METHOD YET -----\n");
+    fprintf(stderr, "This is liable to output way too many sites and is not suitable unless\n");
+    fprintf(stderr, "you cannot call variants. This needs to be tested more before becoming\n");
+    fprintf(stderr, "useful.\n");
     fprintf(stderr, "--refbams -b A 2 column tab separated text file, where column 1 is path to\n");
     fprintf(stderr, "    a BAM file and column 2 is the name of a reference population the\n");
     fprintf(stderr, "    individual belongs to. REQUIRED.\n");
