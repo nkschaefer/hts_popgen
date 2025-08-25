@@ -42,6 +42,12 @@ All programs will show options if run with `-h` or with no arguments.
 * If given a window size, computes significance using the weighted block jackknife, which is described in the D-statistic section in [this paper](https://pubmed.ncbi.nlm.nih.gov/26826668/).
 * This program also has the option to compute $F_{ST}$ per site. Note that these per-SNP values can be very noisy and some can also be negative.
 
+### vcf2eigenstrat
+Converts a [VCF](https://samtools.github.io/hts-specs/VCFv4.2.pdf) file into [EIGENSTRAT](https://reich.hms.harvard.edu/software/InputFileFormats) format, used as input for multiple Reich lab programs, including [admixtools2](https://uqrmaie1.github.io/admixtools/), Eigensoft SmartPCA, [and others](https://reich.hms.harvard.edu/software)
+
+## vcf2treemix
+Converts a VCF file into format expected by [TreeMix](https://bitbucket.org/nygcresearch/treemix/wiki/Home)
+
 ### vcf_filter
 * Filters VCF files using some common strategies (variant quality, genotype quality, probability of Hardy-Weinberg equilibrium given population identifiers), but also does per-sample depth filtering. Outputs a filtered VCF and a file of QC-relevant information.
 * Per-sample sequencing depth histograms often have a very long right tail. Because of this, the program computes the histogram of depth per sample and finds the modal value for each sample. It then models depth as an exponential distribution with mean = $\frac{1}{modal value}$ and chooses the specified percentile of this exponential distribution as an upper cutoff for that sample (default = 0.995).
